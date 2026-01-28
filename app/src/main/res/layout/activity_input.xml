@@ -122,6 +122,17 @@
                 android:layout_height="wrap_content"
                 android:backgroundTint="@color/primary"
                 />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGoToList"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="View Saved Users"
+                android:textColor="@color/primary"
+                android:padding="12dp" />
+
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

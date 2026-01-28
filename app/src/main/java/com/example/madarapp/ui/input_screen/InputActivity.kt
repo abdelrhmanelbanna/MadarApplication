@@ -44,6 +44,12 @@ class InputActivity : AppCompatActivity() {
                 gender = gender
             )
         }
+
+        binding.btnGoToList.setOnClickListener {
+            val intent = Intent(this, ListActivity::class.java)
+            startActivity(intent)
+        }
+
     }
 
     private fun observeViewModel() {
