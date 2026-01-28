@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.domain.entity.UserEntity
 import com.example.domain.usecase.SaveUserUseCase
+import com.example.domain.validator.FieldType
+import com.example.domain.validator.UserValidator
+import com.example.domain.validator.ValidationResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -13,33 +16,37 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InputViewModel @Inject constructor(
-    private val saveUserUseCase: SaveUserUseCase
+    private val saveUserUseCase: SaveUserUseCase,
+    private val validator: UserValidator // Inject the validator
 ) : ViewModel() {
 
-    private val _saveSuccess = MutableLiveData<Boolean>()
-    val saveSuccess: LiveData<Boolean> = _saveSuccess
+    private val _saveStatus = MutableLiveData<ValidationResult>()
+    val saveStatus: LiveData<ValidationResult> = _saveStatus
 
-    fun saveUser(
-        name: String,
-        age: String,
-        jobTitle: String,
-        gender: String
-    ) {
-        if (name.isBlank() || age.isBlank() || jobTitle.isBlank() || gender.isBlank()) {
-            _saveSuccess.value = false
+    fun saveUser(name: String, age: String, jobTitle: String, gender: String) {
+        val validation = validator.validate(name, age, jobTitle, gender)
+
+        if (validation is ValidationResult.Error) {
+            _saveStatus.value = validation
             return
         }
 
-        val user = UserEntity(
-            name = name,
-            age = age.toInt(),
-            jobTitle = jobTitle,
-            gender = gender
-        )
-
         viewModelScope.launch {
-            saveUserUseCase(user)
-            _saveSuccess.postValue(true)
+            try {
+                val user = UserEntity(
+                    name = name,
+                    age = age.toInt(),
+                    jobTitle = jobTitle,
+                    gender = gender
+                )
+                saveUserUseCase(user)
+                _saveStatus.postValue(ValidationResult.Success)
+            } catch (e: Exception) {
+                _saveStatus.value = ValidationResult.Error(
+                    field = FieldType.GENDER,
+                    message = "Database error: ${e.localizedMessage}"
+                )
+            }
         }
     }
 }

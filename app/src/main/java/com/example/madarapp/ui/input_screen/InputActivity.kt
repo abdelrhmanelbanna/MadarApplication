@@ -5,10 +5,11 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.example.domain.validator.FieldType
+import com.example.domain.validator.ValidationResult
 import com.example.madarapp.databinding.ActivityInputBinding
 import com.example.madarapp.ui.list_screen.ListActivity
 import dagger.hilt.android.AndroidEntryPoint
-
 
 @AndroidEntryPoint
 class InputActivity : AppCompatActivity() {
@@ -18,13 +19,17 @@ class InputActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityInputBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupClickListeners()
+        observeViewModel()
+    }
+
+    private fun setupClickListeners() {
         binding.btnSave.setOnClickListener {
 
-            if (!validateForm()) return@setOnClickListener
+            clearErrors()
 
             val gender = when (binding.rgGender.checkedRadioButtonId) {
                 binding.rbMale.id -> "Male"
@@ -39,59 +44,35 @@ class InputActivity : AppCompatActivity() {
                 gender = gender
             )
         }
-
-        // Observe save result
-        viewModel.saveSuccess.observe(this) { isSaved ->
-            if (isSaved) {
-                Toast.makeText(this, "User saved successfully", Toast.LENGTH_SHORT).show()
-                // Navigate to ListActivity
-                startActivity(Intent(this, ListActivity::class.java))
-                finish()
-            } else {
-                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-
     }
 
-    private fun validateForm(): Boolean {
-        var isValid = true
+    private fun observeViewModel() {
+        viewModel.saveStatus.observe(this) { result ->
+            when (result) {
+                is ValidationResult.Success -> handleSuccess()
+                is ValidationResult.Error -> handleError(result)
+            }
+        }
+    }
 
-        val name = binding.etName.text.toString().trim()
-        val age = binding.etAge.text.toString().trim()
-        val job = binding.etJob.text.toString().trim()
+    private fun handleSuccess() {
+        Toast.makeText(this, "User saved successfully", Toast.LENGTH_SHORT).show()
+        startActivity(Intent(this, ListActivity::class.java))
+        finish()
+    }
 
+    private fun handleError(error: ValidationResult.Error) {
+        when (error.field) {
+            FieldType.NAME -> binding.tilName.error = error.message
+            FieldType.AGE -> binding.tilAge.error = error.message
+            FieldType.JOB -> binding.tilJob.error = error.message
+            FieldType.GENDER -> Toast.makeText(this, error.message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun clearErrors() {
         binding.tilName.error = null
         binding.tilAge.error = null
         binding.tilJob.error = null
-
-        if (name.isEmpty()) {
-            binding.tilName.error = "Name is required"
-            isValid = false
-        }
-
-        if (job.isEmpty()) {
-            binding.tilJob.error = "Job title is required"
-            isValid = false
-        }
-
-        if (age.isEmpty()) {
-            binding.tilAge.error = "Age is required"
-            isValid = false
-        } else if (age.toIntOrNull() == null) {
-            binding.tilAge.error = "Age must be a number"
-            isValid = false
-        }
-
-        if (binding.rgGender.checkedRadioButtonId == -1) {
-            Toast.makeText(this, "Please select gender", Toast.LENGTH_SHORT).show()
-            isValid = false
-        }
-
-        return isValid
     }
-
-
-
 }
